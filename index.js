@@ -42,6 +42,7 @@ app.post("/create-transaction", async (req, res) => {
 
     res.json({
       order_id: order_id,
+       token: response.data.token,      
       redirect_url: response.data.redirect_url
     });
 
