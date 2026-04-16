@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -52,10 +54,73 @@ app.post("/create-transaction", async (req, res) => {
   }
 });
 
-// Webhook (opsional tapi penting nanti)
 app.post("/midtrans-webhook", (req, res) => {
-  console.log("Webhook masuk:", req.body);
-  res.sendStatus(200);
+  try {
+    const notification = req.body;
+
+    console.log("Webhook masuk:", notification);
+
+    const {
+      order_id,
+      status_code,
+      gross_amount,
+      signature_key,
+      transaction_status,
+      fraud_status
+    } = notification;
+
+    // 🔐 Verify Signature Key
+    const hash = crypto
+      .createHash("sha512")
+      .update(order_id + status_code + gross_amount + process.env.MIDTRANS_SERVER_KEY)
+      .digest("hex");
+
+    if (hash !== signature_key) {
+      console.log("❌ Signature tidak valid!");
+      return res.status(403).json({ message: "Invalid signature" });
+    }
+
+    console.log("✅ Signature valid");
+
+    // 🎯 Handle status transaksi
+    if (transaction_status === "capture") {
+      if (fraud_status === "challenge") {
+        console.log(`⚠️ Order ${order_id} challenge fraud`);
+      } else if (fraud_status === "accept") {
+        console.log(`✅ Order ${order_id} berhasil (capture)`);
+      }
+    } 
+    
+    else if (transaction_status === "settlement") {
+      console.log(`✅ Order ${order_id} sukses (settlement)`);
+    } 
+    
+    else if (transaction_status === "pending") {
+      console.log(`⏳ Order ${order_id} pending`);
+    } 
+    
+    else if (transaction_status === "deny") {
+      console.log(`❌ Order ${order_id} ditolak`);
+    } 
+    
+    else if (transaction_status === "cancel" || transaction_status === "expire") {
+      console.log(`❌ Order ${order_id} dibatalkan/expired`);
+    } 
+    
+    else if (transaction_status === "refund") {
+      console.log(`💸 Order ${order_id} refund`);
+    }
+
+    // 👉 Di sini nanti update database kamu
+    // contoh:
+    // await updateOrderStatus(order_id, transaction_status);
+
+    res.sendStatus(200);
+
+  } catch (error) {
+    console.error("Webhook error:", error);
+    res.status(500).json({ error: "Webhook error" });
+  }
 });
 
 app.listen(PORT, () => {
