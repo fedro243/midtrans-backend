@@ -17,15 +17,15 @@ app.get("/", (req, res) => {
 // Create transaction (QRIS Snap)
 app.post("/create-transaction", async (req, res) => {
   try {
-    const orderId = "ORDER-" + Date.now();
+    const { order_id, gross_amount } = req.body;
 
     const response = await axios.post(
       "https://app.sandbox.midtrans.com/snap/v1/transactions",
       {
-        transaction_details: {
-          order_id: orderId,
-          gross_amount: 50000
-        },
+       transaction_details: {
+  order_id: order_id || "ORDER-" + Date.now(),
+  gross_amount: gross_amount
+},
         enabled_payments: ["qris"]
       },
       {
