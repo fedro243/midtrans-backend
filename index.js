@@ -17,34 +17,37 @@ app.get("/", (req, res) => {
 // Create transaction (QRIS Snap)
 app.post("/create-transaction", async (req, res) => {
   try {
-    const { order_id, gross_amount } = req.body;
+    console.log("REQ BODY:", req.body);
+
+    const gross_amount = req.body.gross_amount || 50000;
+    const order_id = req.body.order_id || "ORDER-" + Date.now();
 
     const response = await axios.post(
       "https://app.sandbox.midtrans.com/snap/v1/transactions",
       {
-       transaction_details: {
-  order_id: order_id || "ORDER-" + Date.now(),
-  gross_amount: gross_amount
-},
+        transaction_details: {
+          order_id: order_id,
+          gross_amount: gross_amount
+        },
         enabled_payments: ["qris"]
       },
       {
         headers: {
           "Content-Type": "application/json",
           "Authorization":
-            "Basic " + Buffer.from(SERVER_KEY + ":").toString("base64")
+            "Basic " + Buffer.from(process.env.MIDTRANS_SERVER_KEY + ":").toString("base64")
         }
       }
     );
 
     res.json({
-      order_id: orderId,
+      order_id: order_id,
       redirect_url: response.data.redirect_url
     });
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({ error: "Gagal buat transaksi" });
+    console.error("MIDTRANS ERROR:", error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data || "Gagal buat transaksi" });
   }
 });
 
