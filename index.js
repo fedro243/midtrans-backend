@@ -29,7 +29,7 @@ app.post("/create-transaction", async (req, res) => {
           order_id: order_id,
           gross_amount: gross_amount
         },
-        enabled_payments: ["qris"]
+
       },
       {
         headers: {
